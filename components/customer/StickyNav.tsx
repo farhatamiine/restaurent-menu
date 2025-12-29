@@ -1,5 +1,6 @@
 'use client';
 
+import { ICONS } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { MenuData } from '@/types/database';
 import { useEffect, useState } from 'react';
@@ -41,21 +42,31 @@ export default function StickyNav({ categories }: { categories: MenuData[] }) {
     if (categories.length === 0) return null;
 
     return (
-        <div className="sticky top-[88px] z-10 bg-white border-b shadow-sm overflow-x-auto no-scrollbar">
-            <div className="flex px-4 gap-6 min-w-max">
-                {categories.map((cat) => (
+        <div className="flex px-4 gap-6 min-w-max pb-1">
+            {categories.map((cat) => {
+                const CategoryIcon = cat.icon && ICONS[cat.icon as keyof typeof ICONS] ? ICONS[cat.icon as keyof typeof ICONS] : null;
+
+                return (
                     <button
                         key={cat.id}
                         onClick={() => scrollToCategory(cat.id)}
                         className={cn(
-                            'py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                            activeId === cat.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'
+                            'group flex flex-col items-center gap-1 py-2 px-1 text-xs font-bold uppercase tracking-widest border-b-2 transition-all whitespace-nowrap',
+                            activeId === cat.id
+                                ? 'border-[#e85d56] text-[#e85d56]'
+                                : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200'
                         )}
                     >
+                        {/* Icon is optional in the tab bar if we want a cleaner look, but let's keep it small */}
+                        {CategoryIcon && (
+                            <CategoryIcon
+                                className={cn('h-4 w-4 mb-0.5', activeId === cat.id ? 'text-[#e85d56]' : 'text-gray-300 group-hover:text-gray-400')}
+                            />
+                        )}
                         {cat.name}
                     </button>
-                ))}
-            </div>
+                );
+            })}
         </div>
     );
 }

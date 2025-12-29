@@ -15,6 +15,7 @@ export type Database = {
                     name: string;
                     order_index: number | null;
                     shop_id: string;
+                    icon: string | null;
                 };
                 Insert: {
                     created_at?: string;
@@ -22,6 +23,7 @@ export type Database = {
                     name: string;
                     order_index?: number | null;
                     shop_id: string;
+                    icon?: string | null;
                 };
                 Update: {
                     created_at?: string;
@@ -29,6 +31,7 @@ export type Database = {
                     name?: string;
                     order_index?: number | null;
                     shop_id?: string;
+                    icon?: string | null;
                 };
                 Relationships: [
                     {
@@ -52,6 +55,7 @@ export type Database = {
                     name: string;
                     order_index: number | null;
                     price: number | null;
+                    icon: string | null;
                 };
                 Insert: {
                     category_id: string;
@@ -94,6 +98,7 @@ export type Database = {
                     name: string;
                     owner_id: string;
                     slug: string;
+                    theme_config: Json | null;
                     type: string;
                 };
                 Insert: {
@@ -102,6 +107,7 @@ export type Database = {
                     name: string;
                     owner_id: string;
                     slug: string;
+                    theme_config?: Json | null;
                     type: string;
                 };
                 Update: {
@@ -110,6 +116,7 @@ export type Database = {
                     name?: string;
                     owner_id?: string;
                     slug?: string;
+                    theme_config?: Json | null;
                     type?: string;
                 };
                 Relationships: [];
@@ -119,8 +126,18 @@ export type Database = {
             [_ in never]: never;
         };
         Functions: {
-            upsert_categories_order: { Args: { payload: Json }; Returns: undefined };
-            upsert_menu_items_order: { Args: { payload: Json }; Returns: undefined };
+            upsert_categories_order: {
+                Args: {
+                    payload: Json;
+                };
+                Returns: undefined;
+            };
+            upsert_menu_items_order: {
+                Args: {
+                    payload: Json;
+                };
+                Returns: undefined;
+            };
         };
         Enums: {
             [_ in never]: never;

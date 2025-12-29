@@ -35,7 +35,7 @@ export async function getMenu(shopId: string): Promise<{ categories: MenuData[];
     return { categories: categories as MenuData[] };
 }
 
-export async function createCategory(name: string, shopId: string) {
+export async function createCategory(name: string, shopId: string, icon?: string) {
     const supabase = await createClient<Database>();
     const {
         data: { user },
@@ -61,6 +61,7 @@ export async function createCategory(name: string, shopId: string) {
         shop_id: shop.id,
         name,
         order_index: newOrderIndex,
+        icon,
     });
 
     if (error) return { error: error.message };
@@ -68,18 +69,98 @@ export async function createCategory(name: string, shopId: string) {
     return { success: true };
 }
 
-export async function createMenuItem(categoryId: string, item: Partial<MenuItem>) {
+export async function updateCategory(categoryId: string, name: string, icon?: string) {
+    const supabase = await createClient<Database>();
+
+    // Check auth
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const { error } = await supabase.from('categories').update({ name, icon }).eq('id', categoryId);
+
+    if (error) return { error: error.message };
+    revalidatePath('/menu-builder');
+    return { success: true };
+}
+
+// Helper to upload image
+async function uploadImage(file: File): Promise<string | null> {
+    const supabase = await createClient();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Assuming 'menu-items' bucket exists. If not, this will error.
+    // User might need to create it manually due to permissions.
+    const { error: uploadError } = await supabase.storage.from('menu-items').upload(filePath, file);
+
+    if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to upload image');
+    }
+
+    const { data } = supabase.storage.from('menu-items').getPublicUrl(filePath);
+    return data.publicUrl;
+}
+
+export async function createMenuItem(categoryId: string, item: Partial<MenuItem> & { icon?: string | null }, formData?: FormData) {
     const supabase = await createClient();
 
-    // Auto-assign order_index if column exists
-    // Since I can't easily change schema on the fly without SQL, I'll provide a migration snippet or just assume it works if the user runs it.
-    // I'll update the `createMenuItem` to try setting `order_index` if practical, but first I should stick to the requested schema.
-    // Wait, the user asked for DnD reordering now. I MUST add `order_index` to `menu_items` to support item reordering.
+    let imageUrl = item.image_url;
+
+    // Handle Image Upload
+    if (formData) {
+        const file = formData.get('image') as File;
+        if (file && file.size > 0) {
+            try {
+                const uploadedUrl = await uploadImage(file);
+                if (uploadedUrl) imageUrl = uploadedUrl;
+            } catch (e) {
+                return { error: 'Failed to upload image. Please ensure "menu-items" bucket exists and is public.' };
+            }
+        }
+    }
 
     const { error } = await supabase.from('menu_items').insert({
         category_id: categoryId,
         ...item,
+        image_url: imageUrl,
     });
+
+    if (error) return { error: error.message };
+    revalidatePath('/menu-builder');
+    return { success: true };
+}
+
+export async function updateMenuItem(itemId: string, item: Partial<MenuItem> & { icon?: string | null }, formData?: FormData) {
+    const supabase = await createClient();
+
+    let imageUrl = item.image_url; // Default to existing or passed URL
+
+    // Handle Image Upload or Removal
+    if (formData) {
+        const file = formData.get('image') as File;
+        const removeImage = formData.get('removeImage') === 'true';
+
+        if (removeImage) {
+            imageUrl = null;
+        } else if (file && file.size > 0) {
+            try {
+                const uploadedUrl = await uploadImage(file);
+                if (uploadedUrl) imageUrl = uploadedUrl;
+            } catch (e) {
+                return { error: 'Failed to upload image.' };
+            }
+        }
+    }
+
+    // Clean up payload (remove undefined)
+    const payload: any = { ...item };
+    if (imageUrl !== undefined) payload.image_url = imageUrl;
+
+    const { error } = await supabase.from('menu_items').update(payload).eq('id', itemId);
 
     if (error) return { error: error.message };
     revalidatePath('/menu-builder');
@@ -99,6 +180,33 @@ export async function deleteItem(itemId: string) {
     const supabase = await createClient();
     const { error } = await supabase.from('menu_items').delete().eq('id', itemId);
     if (error) return { error: error.message };
+    revalidatePath('/menu-builder');
+    revalidatePath('/menu-builder');
+    return { success: true };
+}
+
+export async function deleteCategory(categoryId: string) {
+    const supabase = await createClient();
+
+    // Check if category has items?
+    // If foreign key uses CASCADE, simple delete works.
+    // If not, we might error. Let's assume user wants to delete even if items exist,
+    // or we'll get an error.
+    // Let's try to delete items first to be safe/clean if we don't rely on CASCADE,
+    // but explicit is better for "Empty first" policy.
+    // However, for a "Delete Category" button, users expect it to just work.
+    // I will try to delete the category directly. If it fails due to FK, I will return an error telling them to empty it first.
+
+    const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+
+    if (error) {
+        if (error.code === '23503') {
+            // Foreign key violation
+            return { error: 'Category is not empty. Please delete all items in this category first.' };
+        }
+        return { error: error.message };
+    }
+
     revalidatePath('/menu-builder');
     return { success: true };
 }

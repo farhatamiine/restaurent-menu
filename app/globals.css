@@ -123,3 +123,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+.bg-seigaiha {
+  background-color: #fdf6f0;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='40' viewBox='0 0 80 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40c5.523 0 10-4.477 10-10V10c0-5.523 4.477-10 10-10s10 4.477 10 10v20c0 5.523 4.477 10 10 10s10-4.477 10-10V10c0-5.523 4.477-10 10-10s10 4.477 10 10v20c0 5.523 4.477 10 10 10s10-4.477 10-10V10c0-5.523 4.477-10 10-10s10 4.477 10 10v20c0 5.523-4.477 10-10 10' fill='%23dcbba8' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E");
+}
+
+.text-jp-red {
+    color: #e85d56;
+}
+
+.bg-jp-red {
+    background-color: #e85d56;
+}
+
+.text-jp-black {
+    color: #2d2d2d;
+}
+
+.font-jp-display {
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

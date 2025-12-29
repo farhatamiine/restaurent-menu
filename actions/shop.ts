@@ -43,3 +43,21 @@ export async function createShop(formData: FormData) {
     revalidatePath('/dashboard');
     return { success: true };
 }
+
+import { ThemeConfig } from '@/types/database';
+
+export async function updateShopTheme(shopId: string, theme: ThemeConfig) {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const { error } = await supabase.from('shops').update({ theme_config: theme }).eq('id', shopId).eq('owner_id', user.id); // Ensure ownership
+
+    if (error) return { error: error.message };
+
+    // Invalidate the specific shop's menu query logic may be needed, but revalidatePath covers the server page
+    revalidatePath('/dashboard');
+    return { success: true };
+}

@@ -6,19 +6,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTransition } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function CreateShopForm() {
-    const [isPending, startTransition] = useTransition();
+    const queryClient = useQueryClient();
 
-    async function handleSubmit(formData: FormData) {
-        startTransition(async () => {
+    const { mutate, isPending } = useMutation({
+        mutationFn: async (formData: FormData) => {
             const result = await createShop(formData);
             if (result?.error) {
-                alert(result.error);
+                throw new Error(result.error);
             }
-        });
-    }
+            return result;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['shops'] });
+        },
+        onError: (error) => {
+            alert(error.message);
+        },
+    });
 
     return (
         <div className="flex justify-center">
@@ -28,7 +35,7 @@ export default function CreateShopForm() {
                     <CardDescription>You need to create a shop before managing your menu.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form id="create-shop-form" action={handleSubmit} className="grid gap-4">
+                    <form id="create-shop-form" action={mutate} className="grid gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="name">Shop Name</Label>
                             <Input id="name" name="name" placeholder="My Awesome Cafe" required />

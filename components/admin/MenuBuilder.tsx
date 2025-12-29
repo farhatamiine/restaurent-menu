@@ -3,18 +3,43 @@
 import { getMenu } from '@/actions/menu';
 import { getShops } from '@/actions/shop';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ThemeConfig } from '@/types/database';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Store } from 'lucide-react';
+import { Plus, Settings, Store } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import AddCategoryDialog from './AddCategoryDialog';
 import AddItemDialog from './AddItemDialog';
+import CategoryFormDialog from './CategoryFormDialog';
 import CategoryItem from './CategoryItem';
 import CreateShopForm from './CreateShopForm';
+import ShopCustomizationForm from './ShopCustomizationForm';
 
 import { reorderCategories } from '@/actions/menu';
+import { seedDemoData } from '@/actions/seed'; // Import seed action
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useMutation, useQueryClient } from '@tanstack/react-query'; // Import useMutation
+import { Loader2, Wand2 } from 'lucide-react'; // Import icons
+
+function DemoDataButton({ shopId }: { shopId: string }) {
+    const queryClient = useQueryClient();
+    const { mutate, isPending } = useMutation({
+        mutationFn: async () => await seedDemoData(shopId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['menu', shopId] });
+        },
+    });
+
+    if (!shopId) return null;
+
+    return (
+        <Button variant="secondary" onClick={() => mutate()} disabled={isPending}>
+            {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+            Demo Menu
+        </Button>
+    );
+}
 
 export default function MenuBuilder() {
     const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
@@ -115,8 +140,26 @@ export default function MenuBuilder() {
                         </SelectContent>
                     </Select>
 
+                    {selectedShopId && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Settings className="h-5 w-5 text-gray-500" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle className="sr-only">Customize Shop Theme</DialogTitle>
+                                <ShopCustomizationForm
+                                    shopId={selectedShopId}
+                                    initialConfig={shops.find((s) => s.id === selectedShopId)?.theme_config as unknown as ThemeConfig}
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    )}
+
                     <Button variant="outline">Generate QR</Button>
-                    <AddItemDialog categories={categories}>
+                    <DemoDataButton shopId={selectedShopId || ''} />
+                    <AddItemDialog categories={categories} shopId={selectedShopId || ''}>
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                             <Plus className="h-4 w-4 mr-2" /> Add New Item
                         </Button>
@@ -134,21 +177,21 @@ export default function MenuBuilder() {
                             {categories.length === 0 ? (
                                 <div className="text-center py-12 border-2 border-dashed rounded-lg">
                                     <p className="text-gray-500">No categories found in this shop. Start by creating one.</p>
-                                    <AddCategoryDialog shopId={selectedShopId || ''}>
+                                    <CategoryFormDialog shopId={selectedShopId || ''}>
                                         <Button variant="outline" className="mt-4">
                                             Create Category
                                         </Button>
-                                    </AddCategoryDialog>
+                                    </CategoryFormDialog>
                                 </div>
                             ) : (
                                 <>
                                     {categories.map((category) => (
-                                        <CategoryItem key={category.id} category={category} shopId={selectedShopId || ''} />
+                                        <CategoryItem key={category.id} category={category} shopId={selectedShopId || ''} categories={categories} />
                                     ))}
                                     <div className="flex justify-center pt-4">
-                                        <AddCategoryDialog shopId={selectedShopId || ''}>
+                                        <CategoryFormDialog shopId={selectedShopId || ''}>
                                             <Button variant="ghost">Add New Category</Button>
-                                        </AddCategoryDialog>
+                                        </CategoryFormDialog>
                                     </div>
                                 </>
                             )}

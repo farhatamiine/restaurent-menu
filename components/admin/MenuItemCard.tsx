@@ -1,16 +1,30 @@
-'use client';
-
-import { updateItemAvailability } from '@/actions/menu';
+import { deleteItem, updateItemAvailability } from '@/actions/menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Category, MenuItem } from '@/types/database';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { GripVertical } from 'lucide-react'; // Added Trash2 just in case
+import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
+import ItemFormDialog from './ItemFormDialog';
 
-export default function MenuItemCard({ item, shopId }: { item: MenuItem; shopId: string }) {
+export default function MenuItemCard({ item, shopId, categories }: { item: MenuItem; shopId: string; categories: Category[] }) {
     const queryClient = useQueryClient();
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     // Sortable Hook
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id, data: { type: 'Item', item } });
@@ -51,6 +65,20 @@ export default function MenuItemCard({ item, shopId }: { item: MenuItem; shopId:
         },
     });
 
+    const { mutate: deleteItemMutation, isPending: isDeleting } = useMutation({
+        mutationFn: async () => {
+            const result = await deleteItem(item.id);
+            if (result?.error) throw new Error(result.error);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['menu', shopId] });
+            setIsDeleteDialogOpen(false);
+        },
+        onError: (error) => {
+            alert(error.message);
+        },
+    });
+
     return (
         <div
             ref={setNodeRef}
@@ -79,10 +107,49 @@ export default function MenuItemCard({ item, shopId }: { item: MenuItem; shopId:
             <div className="flex items-center gap-6">
                 <span className="font-semibold text-gray-900 dark:text-white">${item.price?.toFixed(2)}</span>
                 <div className="flex items-center gap-2">
-                    <Switch checked={item.is_available} onCheckedChange={(checked) => toggleAvailability(checked)} disabled={isPending} />
+                    <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)} className="h-8 w-8 text-gray-400 hover:text-blue-600">
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+
+                    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Item?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">"{item.name}"</span>? This
+                                    action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => deleteItemMutation()}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <Switch checked={item.is_available ?? false} onCheckedChange={(checked) => toggleAvailability(checked)} disabled={isPending} />
                     <span className="text-xs text-gray-500 w-12">{item.is_available ? 'Visible' : 'Hidden'}</span>
                 </div>
             </div>
+
+            <ItemFormDialog
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                shopId={shopId}
+                itemToEdit={{ ...item, icon: (item as any).icon }}
+                categories={categories}
+            />
         </div>
     );
 }
