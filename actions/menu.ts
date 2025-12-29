@@ -118,14 +118,26 @@ export async function createMenuItem(categoryId: string, item: Partial<MenuItem>
                 const uploadedUrl = await uploadImage(file);
                 if (uploadedUrl) imageUrl = uploadedUrl;
             } catch (e) {
+                console.log(e);
+
                 return { error: 'Failed to upload image. Please ensure "menu-items" bucket exists and is public.' };
             }
         }
     }
 
+    if (!item.name) {
+        return { error: 'Item name is required' };
+    }
+
     const { error } = await supabase.from('menu_items').insert({
         category_id: categoryId,
-        ...item,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        is_available: item.is_available,
+        icon: item.icon,
+        metadata: item.metadata,
+        order_index: item.order_index,
         image_url: imageUrl,
     });
 
@@ -150,14 +162,13 @@ export async function updateMenuItem(itemId: string, item: Partial<MenuItem> & {
             try {
                 const uploadedUrl = await uploadImage(file);
                 if (uploadedUrl) imageUrl = uploadedUrl;
-            } catch (e) {
+            } catch {
                 return { error: 'Failed to upload image.' };
             }
         }
     }
 
-    // Clean up payload (remove undefined)
-    const payload: any = { ...item };
+    const payload: Partial<MenuItem> = { ...item };
     if (imageUrl !== undefined) payload.image_url = imageUrl;
 
     const { error } = await supabase.from('menu_items').update(payload).eq('id', itemId);

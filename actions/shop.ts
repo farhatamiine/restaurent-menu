@@ -1,6 +1,7 @@
 'use server';
 
-import { Shop } from '@/types/database';
+import { Shop, ThemeConfig } from '@/types/database';
+import { Json } from '@/types/database.types';
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
@@ -44,8 +45,6 @@ export async function createShop(formData: FormData) {
     return { success: true };
 }
 
-import { ThemeConfig } from '@/types/database';
-
 export async function updateShopTheme(shopId: string, theme: ThemeConfig) {
     const supabase = await createClient();
     const {
@@ -53,7 +52,11 @@ export async function updateShopTheme(shopId: string, theme: ThemeConfig) {
     } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { error } = await supabase.from('shops').update({ theme_config: theme }).eq('id', shopId).eq('owner_id', user.id); // Ensure ownership
+    const { error } = await supabase
+        .from('shops')
+        .update({ theme_config: theme as unknown as Json })
+        .eq('id', shopId)
+        .eq('owner_id', user.id); // Ensure ownership
 
     if (error) return { error: error.message };
 

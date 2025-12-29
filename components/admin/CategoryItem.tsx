@@ -143,7 +143,7 @@ export default function CategoryItem({ category, shopId, categories }: { categor
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Delete Category?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Are you sure you want to delete <span className="font-semibold">"{category.name}"</span>?
+                                            Are you sure you want to delete <span className="font-semibold"> {category.name}</span>?
                                             {items.length > 0 && (
                                                 <span className="block mt-2 text-red-600 font-medium">
                                                     Warning: It contains {items.length} items. You must delete them first.

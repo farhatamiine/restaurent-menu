@@ -121,7 +121,7 @@ export default function MenuItemCard({ item, shopId, categories }: { item: MenuI
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Item?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">"{item.name}"</span>? This
+                                    Are you sure you want to delete <span className="font-semibold text-gray-900 dark:text-white">{item.name}</span>? This
                                     action cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -147,7 +147,7 @@ export default function MenuItemCard({ item, shopId, categories }: { item: MenuI
                 open={isEditOpen}
                 onOpenChange={setIsEditOpen}
                 shopId={shopId}
-                itemToEdit={{ ...item, icon: (item as any).icon }}
+                itemToEdit={{ ...item, icon: (item as MenuItem).icon }}
                 categories={categories}
             />
         </div>

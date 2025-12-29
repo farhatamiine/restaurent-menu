@@ -2,17 +2,12 @@
 
 import { Input } from '@/components/ui/input';
 import { ICONS } from '@/lib/icons';
-import { MenuData, Shop } from '@/types/database';
+import { MenuData, Shop, ThemeConfig } from '@/types/database';
 import { createClient } from '@/utils/supabase/client';
 import { MapPin, Phone, Search, Utensils } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import StickyNav from './StickyNav';
-
-// Utility for classnames if utils doesn't exist
-function classNames(...classes: (string | undefined | null | false)[]) {
-    return classes.filter(Boolean).join(' ');
-}
 
 export default function CustomerMenu({ initialCategories, shop }: { initialCategories: MenuData[]; shop: Shop }) {
     const [categories, setCategories] = useState(initialCategories);
@@ -67,8 +62,9 @@ export default function CustomerMenu({ initialCategories, shop }: { initialCateg
         }))
         .filter((cat) => cat.items.length > 0);
 
-    const SelectedIcon =
-        shop.theme_config && (shop.theme_config as any).icon && ICONS[(shop.theme_config as any).icon] ? ICONS[(shop.theme_config as any).icon] : Utensils;
+    const themeConfig = shop.theme_config as unknown as ThemeConfig | null;
+    const iconName = themeConfig?.icon;
+    const SelectedIcon = iconName && iconName in ICONS ? ICONS[iconName as keyof typeof ICONS] : Utensils;
 
     return (
         <div className={`min-h-screen pb-20 ${jpTheme.bg} font-sans text-[#2d2d2d]`}>
